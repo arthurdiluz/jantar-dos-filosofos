@@ -1,6 +1,6 @@
-import threading
-import random
-import time
+from threading import Thread, Lock
+from random import seed, uniform
+from time import sleep
 '''
 5 filósofos e 5 garfos; é necessário 3 garfos para comer;
 Deadlock é evitado para nunca esperar um garfo com outro garfo na mão;
@@ -9,12 +9,12 @@ Se falhar ao pegar o segundo garfo, o primeiro garfo é largado e os garfos são
 '''
 
 
-class Filosofo(threading.Thread):
+class Filosofo(Thread):
     executando = True  # Thread começa executando
 
     # Construtor da classe Filosofo
     def __init__(self, nome, garfo_esquerda, garfo_direita):
-        threading.Thread.__init__(self)  # Herança dos atributos da classe Thread
+        Thread.__init__(self)  # Herança dos atributos da classe Thread
         self.nome = nome
         self.garfo_esquerda = garfo_esquerda
         self.garfa_direita = garfo_direita
@@ -22,8 +22,8 @@ class Filosofo(threading.Thread):
     # Sobrescrita do método "run" da classe "Thread".
     def run(self):
         while self.executando:
-            print(F">{self.nome} está pensando")
-            time.sleep(random.uniform(5, 15))
+            print(F"> {self.nome} está pensando")
+            sleep(uniform(5, 15))
             self.comer()
 
     def comer(self):
@@ -34,7 +34,6 @@ class Filosofo(threading.Thread):
         '''
 
         garfo1, garfo2 = self.garfo_esquerda, self.garfa_direita
-
         while self.executando:
             garfo1.acquire(True)
             locked = garfo2.acquire(False)
@@ -44,34 +43,30 @@ class Filosofo(threading.Thread):
         else:
             return
 
-        print(F">{self.nome} começou a comer")
-        self.jantando()
+        print(F" >{self.nome} começou a comer")
+        sleep(uniform(5, 10))
+        print(F"> {self.nome} parou de comer")
         garfo1.release()
         garfo2.release()
-
-    def jantando(self):
-        time.sleep(random.uniform(1, 10))
-        # time.sleep(5)
-        print(F">{self.nome} parou de comer")
 
 
 if __name__ == '__main__':
     # número base para gerar valores aleatórios
-    random.seed(507129)
+    seed(507129)
     # nome dos filósofos
     nomes = ("Arthur", "Jesus", "VitorV", "Dijkstra", "Neymar")
     # garfos com lock para impedir que dois acessem o mesmo garfo
-    garfos = [threading.Lock() for _ in range(5)]
-    # mesa com
+    garfos = [Lock() for _ in range(5)]
+    # mesa com 5 filósofos e 1 garfo para cada
     mesa = [Filosofo(nomes[i], garfos[i % 5], garfos[(i + 1) % 5]) for i in range(5)]
 
-    for _ in range(2):
-        print("Começo da janta" + '\n')
+    for _ in range(50):
         Filosofo.executando = True
-
         for filosofo in mesa:
-            filosofo.start()
-
-        time.sleep(random.uniform(5, 15))
+            try:
+                filosofo.start()
+                sleep(2)
+            except RuntimeError:  # caso a thread já tenha sido iniciada
+                pass
+        sleep(uniform(5, 15))
         Filosofo.executando = False
-        print('\n' + "Fim da Janta")
